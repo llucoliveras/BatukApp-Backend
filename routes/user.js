@@ -240,84 +240,55 @@ router.post('/', (req, res) => {
                 }
             })
             .then(band => {
-                const parseBand = band => {
-                    return {
-                        ...band.dataValues,
-                        users: band.dataValues.users.map(user => {
-                            return {
-                                ...user.dataValues,
-                                role: user.dataValues.user_band.role,
-                                user_bands: undefined,
-                                user_band: undefined
-                            }
-                        }),
-                        instruments: band.instruments.map(instrument => {
-                            return {
-                                ...instrument.dataValues,
-                                quantity: instrument.dataValues.band_instrument.quantity,
-                                main_instrument: instrument.dataValues.band_instrument.main_instrument,
-                                user_band_instrument: undefined
-                            }
-                        })
-                    }
-                }
                 if (band == null)
                     return User.create({...req.body, google_id: req.body.id})
                 else {
-                    return band.google_id == null || band.google_id != req.body.id
-                        ? band.update({ google_id: req.body.id }).then(band => parseBand(band))
+                    const parseBand = band => {
+                        return {
+                            ...band.dataValues,
+                            users: band.dataValues.users.map(user => {
+                                return {
+                                    ...user.dataValues,
+                                    role: user.dataValues.user_band.role,
+                                    user_bands: undefined,
+                                    user_band: undefined
+                                }
+                            }),
+                            instruments: band.instruments.map(instrument => {
+                                return {
+                                    ...instrument.dataValues,
+                                    quantity: instrument.dataValues.band_instrument.quantity,
+                                    main_instrument: instrument.dataValues.band_instrument.main_instrument,
+                                    user_band_instrument: undefined
+                                }
+                            })
+                        }
+                    }
+                    return band.google_id != req.body.id
+                        ? band.update({ name: req.body.name, google_id: req.body.id }).then(band => parseBand(band))
                         : parseBand(band)
                 }
             })
         }
         else {
-            return {
-                ...user.dataValues,
-                bands: user.bands.map(band => {
-                    let user_band = band.user_bands.filter(uB => uB.user_iduser == user.iduser)[0]
-                    return {
-                        ...band.dataValues,
-                        role: user_band.role,
-                        user_bands: undefined,
-                        instruments: user_band.instruments.map(instrument => { return { ...instrument.dataValues, main_instrument: instrument.dataValues.user_band_instrument.main_instrument, user_band_instrument: undefined }})
-                    }
-                })
+            const parseUser = user => {
+                return {
+                    ...user.dataValues,
+                    bands: user.bands.map(band => {
+                        let user_band = band.user_bands.filter(uB => uB.user_iduser == user.iduser)[0]
+                        return {
+                            ...band.dataValues,
+                            role: user_band.role,
+                            user_bands: undefined,
+                            instruments: user_band.instruments.map(instrument => { return { ...instrument.dataValues, main_instrument: instrument.dataValues.user_band_instrument.main_instrument, user_band_instrument: undefined }})
+                        }
+                    })
+                }
             }
+            return user.google_id != req.body.id
+                ? user.update({ name: req.body.name, google_id: req.body.id }).then(user => parseUser(user))
+                : parseUser(user)
         }
-    })
-    .then(result => res.json(result))
-    .catch(error => res.send(error).status(500))
-})
-
-/**
- * ASSIGN USER TO A BAND
- *
- * @swagger
- * /users/assign/user/:iduser/band/:idband:
- *      post:
- *          summary: Assign an existing user to an existing band
- *          requestBody:
- *              description: The id of both the user and the band you want to relate
- *              required: true
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          properties:
- *                              iduser:
- *                                  type: integer
- *                                  example: 1
- *                              idband:
- *                                  type: integer
- *                                  example: 1
- *          produces:
- *              - application/json
- */
-router.post('/assignBand', (req, res) => {
-    BandHasUser.create({
-        user_iduser: req.body.iduser,
-        band_idband: req.body.idband,
-        role: "Member"
     })
     .then(result => res.json(result))
     .catch(error => res.send(error).status(500))
