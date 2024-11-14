@@ -4,8 +4,8 @@ const Band = require('../classes/Band');
 const UserBandInstrument = require('../classes/UserBandInstrument');
 const UserBand = require('../classes/UserBand');
 const Event = require('../classes/Event');
-const Instrument = require('../classes/Instrument');
 const BandInstrument = require('../classes/BandInstrument');
+const User = require('../classes/User');    
 
 router.put('/:idband', (req, res) => {
     let promises = []
@@ -135,6 +135,43 @@ router.get('/public', (req, res) => {
     .catch(error => res.send(error).status(500))    
 })
 
-// router.post('/addMember/:idband', (req, res) => {)
+router.post('/assignMembers/:idband', (req, res) => {
+    let promises = []
+
+    const createRelation = user => UserBand.create({
+        user_iduser: user.iduser,
+        band_idband: parseInt(req.params.idband),
+        role: user.role || UserBand.rawAttributes.role.defaultValue
+    })
+
+    req.body.map(email => {
+        User.findOne({
+            where: {
+                email: email
+            }
+        })
+        .then(user => {
+            if (user == null) {
+                promises.push(
+                    Band.findOne({ where: { email: email } })
+                    .then(band => {
+                        if (band != null) return // do nothing if the email is from an existing band
+
+                        User.create({ name: email.split("@")[0], email: email })
+                        .then(user => createRelation(user))
+                    })
+                )
+            }
+            else {
+                promises.push(createRelation(user))
+            }
+        })
+        .catch(error => res.send(error).status(500))
+    })
+
+    Promise.all(promises)
+    .then(result => res.json(result).status(200))
+    .catch(error => res.send(error).status(500))
+})
 
 module.exports = router;

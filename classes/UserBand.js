@@ -10,7 +10,8 @@ const UserBand = db.define('user_band', {
         autoIncrement: true
     },
     role: {
-        type: Sequelize.ENUM('Admin','Editor','Member')
+        type: Sequelize.ENUM('Editor','Member'),
+        defaultValue: 'Member'
     }
 }, {tableName: 'user_band'})
 
