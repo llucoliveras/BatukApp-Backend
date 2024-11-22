@@ -80,7 +80,6 @@ router.post('/:idevent', (req, res) => {
                 }
             })
             .then(assistance => {
-                console.log(assistance)
                 let assistanceData = {
                     answer: req.body.answer,
                     user_iduser: req.body.iduser,
