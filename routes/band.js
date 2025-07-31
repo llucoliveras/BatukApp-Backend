@@ -15,7 +15,8 @@ router.put('/:idband', (req, res) => {
             name: req.body.name,
             location: req.body.location,
             nif: req.body.nif,
-            profile_photo: req.body.profile_photo,
+            profile_picture: req.body.profile_picture,
+            color_code: req.body.color_code,
         }, {
             where: {
                 idband: req.params.idband
@@ -23,18 +24,19 @@ router.put('/:idband', (req, res) => {
         })
     )
 
+    if (req.body.users) {
     req.body.users.map(user => {
         if (user.role)
-            promises.push(
-                UserBand.update({
-                    role: user.role
-                }, {
-                    where: {
-                        band_idband: req.params.idband,
-                        user_iduser: user.iduser
-                    }
-                })
-            )
+                // promises.push(
+                //     UserBand.update({
+                //         role: user.role
+                //     }, {
+                //         where: {
+                //             band_idband: req.params.idband,
+                //             user_iduser: user.iduser
+                //         }
+                //     })
+                // )
 
         UserBand.findOne({
             where: {
@@ -43,41 +45,41 @@ router.put('/:idband', (req, res) => {
             }
         })
         .then(uB => {
-            promises.push(
-                UserBandInstrument.destroy({
-                    where: {
-                        user_band_iduser_band: uB.iduser_band,
-                    }
-                })
-                .then(_ => UserBandInstrument.bulkCreate(
-                    user.instruments.map((idinstrument, idx) => {
-                        return {
-                            user_band_iduser_band: uB.iduser_band,
-                            instrument_idinstrument: idinstrument,
-                            main_instrument: false,
-                            priority: idx
-                        }
-                    })
-                )
-            ))
+                // promises.push(
+                //     UserBandInstrument.destroy({
+                //         where: {
+                //             user_band_iduser_band: uB.iduser_band,
+                //         }
+                //     })
+                //     .then(_ => UserBandInstrument.bulkCreate(
+                //         user.instruments.map((idinstrument, idx) => {
+                //             return {
+                //                 user_band_iduser_band: uB.iduser_band,
+                //                 instrument_idinstrument: idinstrument,
+                //                 priority: idx
+                //             }
+                //         })
+                //     )
+                // ))
         })
     })
+    }
 
-    promises.push(BandInstrument.destroy({
-        where: {
-            band_idband: req.params.idband,
-        }
-    }).then(_ =>
-        req.body.instruments.map(instrument => {
-            promises.push(
-                BandInstrument.create({
-                    band_idband: parseInt(req.params.idband),
-                    instrument_idinstrument: instrument.idinstrument,
-                    quantity: instrument.quantity
-                })
-            )
-        })
-    ))
+    // promises.push(BandInstrument.destroy({
+    //     where: {
+    //         band_idband: req.params.idband,
+    //     }
+    // }).then(_ =>
+    //     req.body.instruments.map(instrument => {
+    //         promises.push(
+    //             BandInstrument.create({
+    //                 band_idband: parseInt(req.params.idband),
+    //                 instrument_idinstrument: instrument.idinstrument,
+    //                 quantity: instrument.quantity
+    //             })
+    //         )
+    //     })
+    // ))
 
     Promise.all(promises)
     .then(result => res.json(true).status(200))
@@ -104,7 +106,6 @@ router.put('/:idband', (req, res) => {
 //             UserBandInstrument.create({
 //                 user_band_iduser_band: uB.iduser_band,
 //                 instrument_idinstrument: idinstrument,
-//                 main_instrument: false
 //             })
 //         })
 
@@ -112,7 +113,6 @@ router.put('/:idband', (req, res) => {
 //             UserBandInstrument.create({
 //                 user_band_iduser_band: uB.iduser_band,
 //                 instrument_idinstrument: idinstrument,
-//                 main_instrument: false
 //             })
 //         })
 //     })

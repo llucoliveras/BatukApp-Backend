@@ -18,7 +18,7 @@ const User = db.define('user', {
     birth_date: {
         type: Sequelize.DATE
     },
-    profile_photo: {
+    profile_picture: {
         type: Sequelize.STRING
     }
 }, {tableName: 'user'})

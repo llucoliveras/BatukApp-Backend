@@ -16,7 +16,13 @@ const genericUserBody = {
             include: {
                 model: UserBand,
                 include: {
-                    model: Instrument
+                    model: Instrument,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt"]
+                    }
+                },
+                attributes: {
+                    exclude: ["createdAt", "updatedAt"]
                 }
             }
         }
@@ -63,7 +69,6 @@ router.get('/band/:idband', (req, res) => {
                 user.user_bands[0].instruments.map(i => {
                     parsedInstruments.push({
                         ...i.dataValues,
-                        main_instrument: i.dataValues.user_band_instrument.main_instrument,
                         priority: i.dataValues.user_band_instrument.priority,
                         user_band_instrument: undefined
                     })
@@ -100,14 +105,11 @@ router.get('/band/:idband', (req, res) => {
  *                name: iduser
  *                required: false
  *                type: integer
- *              - in: query
- *                name: google_id
- *                required: false
- *                type: string
  *          produces:
  *              - application/json
 */
 router.get('/', (req, res) => {
+    console.log("🔍 Query parameters:", req.query);
     if(Object.keys(req.query).length <= 0) {
         User.findAll(genericUserBody)
         .then(result => res.json(result))
@@ -117,7 +119,6 @@ router.get('/', (req, res) => {
         let condition = {}
         if (req.query.email) condition = { ...condition, email: req.query.email }
         if (req.query.iduser) condition = { ...condition, iduser: req.query.iduser }
-        if (req.query.google_id) condition = { ...condition, google_id: req.query.google_id }
 
         User.findOne({
             ...genericUserBody,
@@ -126,8 +127,14 @@ router.get('/', (req, res) => {
         .then(result => {
             if (result) {
                 let parsedBands = []
-                result.user_bands.map(uB => {
-                    parsedBands.push({...uB.band.dataValues, role: uB.role })
+
+                result.bands.map(band => {
+                    let bandData = {
+                        ...band.dataValues,
+                        user_bands: (band.dataValues.user_band.dataValues.role === 'Member') ? undefined : band.dataValues.user_bands.dataValues,
+                        user_band: { iduser_band: band.dataValues.user_band.dataValues.iduser_band, role: band.dataValues.user_band.dataValues.role}
+                    }
+                    parsedBands.push(bandData)
                 })
                 res.json({...result.dataValues, user_bands: undefined, bands: parsedBands})
             }
@@ -241,7 +248,7 @@ router.post('/', (req, res) => {
             })
             .then(band => {
                 if (band == null)
-                    return User.create({...req.body, google_id: req.body.id})
+                    return User.create({...req.body})
                 else {
                     const parseBand = band => {
                         return {
@@ -258,15 +265,13 @@ router.post('/', (req, res) => {
                                 return {
                                     ...instrument.dataValues,
                                     quantity: instrument.dataValues.band_instrument.quantity,
-                                    main_instrument: instrument.dataValues.band_instrument.main_instrument,
+                                    priority: instrument.dataValues.band_instrument.priority,
                                     user_band_instrument: undefined
                                 }
                             })
                         }
                     }
-                    return band.google_id != req.body.id
-                        ? band.update({ name: req.body.name, google_id: req.body.id }).then(band => parseBand(band))
-                        : parseBand(band)
+                    return parseBand(band)
                 }
             })
         }
@@ -280,34 +285,63 @@ router.post('/', (req, res) => {
                             ...band.dataValues,
                             role: user_band.role,
                             user_bands: undefined,
-                            instruments: user_band.instruments.map(instrument => { return { ...instrument.dataValues, main_instrument: instrument.dataValues.user_band_instrument.main_instrument, user_band_instrument: undefined }})
+                            instruments: user_band.instruments.map(instrument => { return { ...instrument.dataValues, priority: instrument.dataValues.user_band_instrument.priority, user_band_instrument: undefined }})
                         }
                     })
                 }
             }
-            return user.google_id != req.body.id
-                ? user.update({ name: req.body.name, google_id: req.body.id }).then(user => parseUser(user))
-                : parseUser(user)
+            return parseUser(user)
         }
     })
     .then(result => res.json(result))
     .catch(error => res.send(error).status(500))
 })
 
-router.put('/:google_id', (req, res) => {
-    let update = {
-        name: req.body.name || undefined,
-        dni: req.body.dni || undefined,
-        birth_date: req.body.birth_date || undefined,
-        profile_photo: req.body.profile_photo || undefined,
-    }
-
-    User.update(update, {
+router.put('/:iduser', (req, res) => {
+    User.update({
+        name: req.body.name,
+        email: req.body.email,
+        birth_date: req.body.birth_date,
+        profile_picture: req.body.profile_picture
+    }, {
         where: {
-            google_id: req.params.google_id
+            iduser: req.params.iduser
         }
     })
-    .then(_ => res.json("Correctly Updated").status(200))
+    .then(() => {
+        return User.findOne({
+            where: {
+                iduser: req.params.iduser
+            },
+            include: {
+                model: UserBand,
+                include: {
+                    model: Instrument,
+                    attributes: {
+                        exclude: ["createdAt", "updatedAt"]
+                    }
+                }
+            },
+            attributes: {
+                exclude: ["createdAt", "updatedAt"]
+            }
+        })
+    })
+    .then(result => {
+        if (result) {
+            let parsedBands = []
+            result.bands.map(band => {
+                let bandData = {
+                    ...band.dataValues,
+                    user_bands: (band.dataValues.user_band.dataValues.role === 'Member') ? undefined : band.dataValues.user_bands.dataValues,
+                    user_band: { iduser_band: band.dataValues.user_band.dataValues.iduser_band, role: band.dataValues.user_band.dataValues.role}
+                }
+                parsedBands.push(bandData)
+            })
+            res.json({...result.dataValues, user_bands: undefined, bands: parsedBands})
+        }
+        else res.json("User not found").status(404)
+    })
     .catch(error => res.send(error).status(500))
 })
 

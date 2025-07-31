@@ -24,7 +24,7 @@ const Band = db.define('band', {
     nif: {
         type: Sequelize.STRING
     },
-    profile_photo: {
+    profile_picture: {
         type: Sequelize.STRING
     },
     color_code: {
