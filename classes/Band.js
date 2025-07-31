@@ -27,9 +27,9 @@ const Band = db.define('band', {
     profile_photo: {
         type: Sequelize.STRING
     },
-    google_id: {
+    color_code: {
         type: Sequelize.STRING
-    }
+    },
 }, {tableName: 'band'})
 
 /** Relation Band-Song **/
