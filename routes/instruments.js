@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express();
+const router = express.Router();
 const Instrument = require('../classes/Instrument');
 const Band = require('../classes/Band');
 const BandInstrument = require('../classes/BandInstrument');

@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express();
+const router = express.Router();
 const Assistance = require('../classes/Assistance')
 
 // TO GET ANSWER ENUM VALUES USE <Assistance.rawAttributes.answer.values>

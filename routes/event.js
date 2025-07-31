@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express();
+const router = express.Router();
 const moment = require('moment');
 const { Op } = require('sequelize');
 const Band = require('../classes/Band');
