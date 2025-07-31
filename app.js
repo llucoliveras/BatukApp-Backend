@@ -1,10 +1,34 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const createError = require('http-errors');
 
-var app = express();
+const app = express();
 
-var indexController = require('./index');
+const corsOptions = {
+    origin: (origin, callback) => {
+        console.log("🔍 Incoming request origin:", origin);
+
+        const allowedOrigins = [
+            "http://localhost:3000"
+        ];
+
+        if (allowedOrigins.includes(origin) || !origin) {
+            console.log("✅ Allowed by CORS:", origin);
+            callback(null, origin);
+        } else {
+            console.warn("❌ Blocked by CORS:", origin);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
+};
+
+app.use(cors(corsOptions));
+
+app.use(bodyParser.json());
+
 var userController = require('./routes/user');
 var bandController = require('./routes/band');
 var songController = require('./routes/song');
@@ -12,7 +36,6 @@ var eventController = require('./routes/event');
 var assistanceController = require('./routes/assistance');
 var instrumentsController = require('./routes/instruments');
 
-app.use('/', indexController);
 app.use('/users', userController);
 app.use('/bands', bandController);
 app.use('/songs', songController);
