@@ -5,7 +5,87 @@ const UserBandInstrument = require('../classes/UserBandInstrument');
 const UserBand = require('../classes/UserBand');
 const Event = require('../classes/Event');
 const BandInstrument = require('../classes/BandInstrument');
-const User = require('../classes/User');    
+const User = require('../classes/User');
+const Instrument = require('../classes/Instrument');
+
+router.get('/', (req, res) => {
+    Band.findAll({
+        attributes: {
+            exclude: ["createdAt", "updatedAt"]
+        }
+    })
+    .then(result => res.json(result))
+    .catch(error => res.send(error).status(500))
+})
+
+router.get('/public', (req, res) => {
+    Band.findAll({
+        include: {
+            model: Event,
+            where: {
+                private: false
+            },
+            attributes: []
+        },
+        attributes: {
+            exclude: ["createdAt", "updatedAt"]
+        }
+    })
+    .then(result => res.json(result))
+    .catch(error => res.send(error).status(500))    
+})
+
+router.get('/:idband', (req, res) => {
+    Band.findOne({
+        where: {
+            idband: req.params.idband
+        },
+        include: [
+            {
+                    model: Instrument
+            },
+            {
+                model: User,
+                include: [
+                    {
+                        model: UserBand,
+                        include: [
+                            {
+                                model: Instrument
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        attributes: {
+            exclude: ["createdAt", "updatedAt"]
+        }
+    })
+    .then(result => res.json(result))
+    .catch(error => res.send(error).status(500))
+})
+// 
+router.put('/:idband/instruments', (req, res) => {
+    let promises = []
+    req.body.map(instrument => {
+        promises.push(
+            BandInstrument.update({
+                min_formation: instrument.min_formation,
+                quantity: instrument.quantity
+            }, {
+                where: {
+                    band_idband: req.params.idband,
+                    instrument_idinstrument: instrument.idinstrument
+                }
+            })
+        )
+    })
+
+    Promise.all(promises)
+    .then(result => res.json(true).status(200))
+    .catch(error => res.send(error).status(500))
+})
 
 router.put('/:idband', (req, res) => {
     let promises = []
@@ -14,7 +94,6 @@ router.put('/:idband', (req, res) => {
         Band.update({
             name: req.body.name,
             location: req.body.location,
-            nif: req.body.nif,
             profile_picture: req.body.profile_picture,
             color_code: req.body.color_code,
         }, {
@@ -25,8 +104,8 @@ router.put('/:idband', (req, res) => {
     )
 
     if (req.body.users) {
-    req.body.users.map(user => {
-        if (user.role)
+        req.body.users.map(user => {
+            if (user.role)
                 // promises.push(
                 //     UserBand.update({
                 //         role: user.role
@@ -38,13 +117,13 @@ router.put('/:idband', (req, res) => {
                 //     })
                 // )
 
-        UserBand.findOne({
-            where: {
-                user_iduser: user.iduser,
-                band_idband: req.params.idband
-            }
-        })
-        .then(uB => {
+            UserBand.findOne({
+                where: {
+                    user_iduser: user.iduser,
+                    band_idband: req.params.idband
+                }
+            })
+            .then(uB => {
                 // promises.push(
                 //     UserBandInstrument.destroy({
                 //         where: {
@@ -61,25 +140,26 @@ router.put('/:idband', (req, res) => {
                 //         })
                 //     )
                 // ))
+            })
         })
-    })
     }
 
-    // promises.push(BandInstrument.destroy({
-    //     where: {
-    //         band_idband: req.params.idband,
-    //     }
-    // }).then(_ =>
-    //     req.body.instruments.map(instrument => {
-    //         promises.push(
-    //             BandInstrument.create({
-    //                 band_idband: parseInt(req.params.idband),
-    //                 instrument_idinstrument: instrument.idinstrument,
-    //                 quantity: instrument.quantity
-    //             })
-    //         )
-    //     })
-    // ))
+    promises.push(BandInstrument.destroy({
+        where: {
+            band_idband: req.params.idband,
+        }
+    }).then(_ =>
+        req.body.instruments.map(instrument => {
+            promises.push(
+                BandInstrument.create({
+                    band_idband: parseInt(req.params.idband),
+                    instrument_idinstrument: instrument.idinstrument,
+                    quantity: instrument.quantity,
+                    min_formation: instrument.min_formation
+                })
+            )
+        })
+    ))
 
     Promise.all(promises)
     .then(result => res.json(true).status(200))
@@ -117,23 +197,6 @@ router.put('/:idband', (req, res) => {
 //         })
 //     })
 // })
-
-router.get('/public', (req, res) => {
-    Band.findAll({
-        include: {
-            model: Event,
-            where: {
-                private: false
-            },
-            attributes: []
-        },
-        attributes: {
-            exclude: ["createdAt", "updatedAt"]
-        }
-    })
-    .then(result => res.json(result))
-    .catch(error => res.send(error).status(500))    
-})
 
 router.post('/assignMembers/:idband', (req, res) => {
     let promises = []

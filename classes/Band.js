@@ -21,9 +21,6 @@ const Band = db.define('band', {
     location: {
         type: Sequelize.STRING
     },
-    nif: {
-        type: Sequelize.STRING
-    },
     profile_picture: {
         type: Sequelize.STRING
     },
