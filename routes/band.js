@@ -42,7 +42,7 @@ router.get('/public', (req, res) => {
 router.get('/:idband', (req, res) => {
     Band.findOne({
         where: {
-            idband: req.params.idband
+            idband: parseInt(req.params.idband)
         },
         include: [
             {
@@ -79,7 +79,7 @@ router.put('/:idband/instruments', (req, res) => {
                 quantity: instrument.quantity
             }, {
                 where: {
-                    band_idband: req.params.idband,
+                    band_idband: parseInt(req.params.idband),
                     instrument_idinstrument: instrument.idinstrument
                 }
             })
@@ -92,8 +92,16 @@ router.put('/:idband/instruments', (req, res) => {
 })
 
 router.put('/:idband', (req, res) => {
+    const {
+        fieldsUnchanged,
+        instrumentsUnchanged,
+        usersUnchanged
+    } = req.query
+
     let promises = []
 
+    // Band data
+    if (fieldsUnchanged && fieldsUnchanged == 'false') {
     promises.push(
         Band.update({
             name: req.body.name,
@@ -102,55 +110,16 @@ router.put('/:idband', (req, res) => {
             color_code: req.body.color_code,
         }, {
             where: {
-                idband: req.params.idband
-            }
-        })
-    )
-
-    if (req.body.users) {
-        req.body.users.map(user => {
-            if (user.role)
-                // promises.push(
-                //     UserBand.update({
-                //         role: user.role
-                //     }, {
-                //         where: {
-                //             band_idband: req.params.idband,
-                //             user_iduser: user.iduser
-                //         }
-                //     })
-                // )
-
-            UserBand.findOne({
-                where: {
-                    user_iduser: user.iduser,
-                    band_idband: req.params.idband
+                    idband: parseInt(req.params.idband)
                 }
             })
-            .then(uB => {
-                // promises.push(
-                //     UserBandInstrument.destroy({
-                //         where: {
-                //             user_band_iduser_band: uB.iduser_band,
-                //         }
-                //     })
-                //     .then(_ => UserBandInstrument.bulkCreate(
-                //         user.instruments.map((idinstrument, idx) => {
-                //             return {
-                //                 user_band_iduser_band: uB.iduser_band,
-                //                 instrument_idinstrument: idinstrument,
-                //                 priority: idx
-                //             }
-                //         })
-                //     )
-                // ))
-            })
-        })
+        )
     }
 
+    if (instrumentsUnchanged && instrumentsUnchanged == "false" && req.body.instruments) {
     promises.push(BandInstrument.destroy({
         where: {
-            band_idband: req.params.idband,
+                band_idband: parseInt(req.params.idband),
         }
     }).then(_ =>
         req.body.instruments.map(instrument => {
@@ -164,43 +133,52 @@ router.put('/:idband', (req, res) => {
             )
         })
     ))
+    }
+
+    // band users
+    if (usersUnchanged && usersUnchanged == "false" && req.body.users) {
+        req.body.users.map(user => {
+            console.log(user.role, user.iduser)
+            promises.push(
+                UserBand.update({
+                    role: user.role
+                }, {
+                    where: {
+                        band_idband: parseInt(req.params.idband),
+                        user_iduser: user.iduser
+                    }
+                })
+                .then(() => UserBand.findOne({
+                    where: {
+                        user_iduser: user.iduser,
+                        band_idband: parseInt(req.params.idband)
+                    }
+                }))
+                .then(uB => {
+                    return UserBandInstrument.destroy({
+                        where: {
+                            user_band_iduser_band: uB.iduser_band,
+                        }
+                    })
+                    .then(() => UserBandInstrument.bulkCreate(
+                        user.instruments.map((instrument, idx) => {
+                            console.log(instrument, idx)
+                            return ({
+                                user_band_iduser_band: uB.iduser_band,
+                                instrument_idinstrument: instrument.idinstrument,
+                                priority: idx
+                            })
+                        })
+                    ))
+                })
+            )
+        })
+    }
 
     Promise.all(promises)
     .then(result => res.json(true).status(200))
     .catch(error => res.send(error).status(500))
 })
-
-// router.get('/test', (req, res) => {
-//     UserBand.findAll({
-//         where: {
-//             user_iduser: req.query.iduser
-//         },
-//         include: {
-//             model: Instrument,
-//             where: {
-//                 idinstrument: req.query.instruments
-//             }
-//         }
-//     })
-//     .then(uB => {
-//         let newInstrumentsIds = req.query.instruments.filter(idInst => !uBi.instruments.map(_ => _.idinstrument).includes(idInst))
-//         let deletedInstrumentsIds = uBi.instruments.map(_ => _.idinstrument).filter(idInst => !req.query.instruments.includes(idInst))
-
-//         newInstrumentsIds.map(idinstrument => {
-//             UserBandInstrument.create({
-//                 user_band_iduser_band: uB.iduser_band,
-//                 instrument_idinstrument: idinstrument,
-//             })
-//         })
-
-//         deletedInstrumentsIds.map(idinstrument => {
-//             UserBandInstrument.create({
-//                 user_band_iduser_band: uB.iduser_band,
-//                 instrument_idinstrument: idinstrument,
-//             })
-//         })
-//     })
-// })
 
 router.post('/assignMembers/:idband', (req, res) => {
     let promises = []
