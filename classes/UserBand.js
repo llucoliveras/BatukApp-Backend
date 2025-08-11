@@ -10,7 +10,7 @@ const UserBand = db.define('user_band', {
         autoIncrement: true
     },
     role: {
-        type: Sequelize.ENUM('Editor','Member'),
+        type: Sequelize.ENUM('Moderator', 'Editor','Member'),
         defaultValue: 'Member'
     }
 }, {tableName: 'user_band'})
@@ -27,12 +27,16 @@ UserBandInstrument.belongsTo(UserBand, {
 /** Relation UserBandInstrument-Instrument **/
 UserBand.belongsToMany(Instrument, {
     through: UserBandInstrument,
-    foreignKey: "user_band_iduser_band"
-})
+    foreignKey: "user_band_iduser_band",
+    otherKey: "instrument_idinstrument",
+    as: "instruments"
+});
 
 Instrument.belongsToMany(UserBand, {
     through: UserBandInstrument,
-    foreignKey: "instrument_idinstrument"
-})
+    foreignKey: "instrument_idinstrument",
+    otherKey: "user_band_iduser_band",
+    as: "userBands"
+});
 
 module.exports = UserBand

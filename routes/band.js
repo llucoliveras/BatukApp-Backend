@@ -8,6 +8,10 @@ const BandInstrument = require('../classes/BandInstrument');
 const User = require('../classes/User');
 const Instrument = require('../classes/Instrument');
 
+router.get("/roles", (req, res) => {
+    res.json(UserBand.rawAttributes.role.values)
+})
+
 router.get('/', (req, res) => {
     Band.findAll({
         attributes: {
@@ -42,7 +46,7 @@ router.get('/:idband', (req, res) => {
         },
         include: [
             {
-                    model: Instrument
+                model: Instrument
             },
             {
                 model: User,

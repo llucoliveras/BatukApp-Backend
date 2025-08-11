@@ -15,6 +15,12 @@ const genericEventBody = {
             model: Band,
             attributes: {
                 exclude: ["createdAt", "updatedAt"]
+            },
+            include: {
+                model: Instrument,
+                attributes: {
+                    exclude: ["createdAt", "updatedAt"]
+                }
             }
         },
         {
@@ -35,6 +41,7 @@ const genericEventBody = {
                         model: UserBand,
                         include: {
                             model: Instrument,
+                            as: "instruments",
                             attributes: {
                                 exclude: ["createdAt", "updatedAt"]
                             },
