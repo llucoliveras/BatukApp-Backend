@@ -10,33 +10,29 @@ const genericUserBody = {
     include: [
         {
             model: Band,
-            attributes: {
-                exclude: ["createdAt", "updatedAt"]
-            },
+            attributes: { exclude: ["createdAt", "updatedAt"] },
             include: [
                 {
                     model: UserBand,
-                    include: {
-                        model: Instrument,
-                        attributes: {
-                            exclude: ["createdAt", "updatedAt"]
+                    attributes: { exclude: ["createdAt", "updatedAt"] },
+                    include: [
+                        {
+                            model: Instrument,
+                            as: "instruments",
+                            attributes: { exclude: ["createdAt", "updatedAt"] },
+                            through: { attributes: ["priority"] } // include join table data
+                        },
+                        {
+                            model: User,
+                            attributes: {
+                                exclude: ["created_at", "updated_at"]
+                            }
                         }
-                    },
-                    attributes: {
-                        exclude: ["createdAt", "updatedAt"]
-                    },
-                    include: {
-                        model: User,
-                        attributes: {
-                            exclude: ["created_at", "updated_at"]
-                        }
-                    }
+                    ]
                 },
                 {
                     model: Instrument,
-                    attributes: {
-                        exclude: ["createdAt", "updatedAt"]
-                    }
+                    attributes: { exclude: ["createdAt", "updatedAt"] },
                 }
             ]
         }
@@ -142,12 +138,30 @@ router.get('/', (req, res) => {
                 let parsedBands = []
 
                 result.bands.map(band => {
-                    console.log(band.user_band.dataValues)
-                    console.log(band.dataValues)
                     let bandData = {
                         ...band.dataValues,
-                        user_bands: (band.dataValues.user_band.dataValues.role === 'Member') ? undefined : band.dataValues.user_bands.dataValues,
-                        user_band: { iduser_band: band.dataValues.user_band.dataValues.iduser_band, role: band.dataValues.user_band.dataValues.role},
+                        user_band: undefined,
+                        user_bands: undefined,
+                        role: band.dataValues.user_band.dataValues.role,
+                        users: (
+                            band.dataValues.user_band.dataValues.role === 'Member') 
+                            ? undefined 
+                            : band.dataValues.user_bands.map(uB => {
+                                return {
+                                    ...uB.user.dataValues,
+                                    role: uB.role,
+                                    instruments: uB.dataValues.instruments.map(instrument => {
+                                        instrument = instrument.dataValues
+                                        return {
+                                            ...instrument,
+                                            priority: instrument.user_band_instrument.dataValues.priority,
+                                            user_band_instrument: undefined
+                                        }
+                                    }).sort((a, b) => a.priority - b.priority),
+                                    createdAt: undefined,
+                                    updatedAt: undefined
+                                }
+                            }).sort((a, b) => a.name.localeCompare(b.name)),
                         instruments: band.dataValues.instruments.map(instrument => {
                             return {
                                 ...instrument.dataValues,
