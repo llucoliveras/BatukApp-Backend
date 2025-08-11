@@ -229,6 +229,7 @@ router.post('/', (req, res) => {
                         model: UserBand,
                         include: {
                             model: Instrument,
+                            as: "instruments",
                             attributes: {
                                 exclude: ["createdAt", "updatedAt"]
                             },
